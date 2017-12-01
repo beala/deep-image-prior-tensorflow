@@ -10,3 +10,6 @@ This is a tensorflow implemenation of [Deep Image Prior](https://dmitryulyanov.g
 - This only implements super resolution.
 - This uses a Gaussian blur rather than a Lanczos2 kernel for the downsampling operator in E.
 - The output images suffer from a checkerboard artifact.
+
+# Example
+![Blurred pupper](corrupt.png?raw=true) ![Upsampled pupper](4000_pupper.png?raw=true)
