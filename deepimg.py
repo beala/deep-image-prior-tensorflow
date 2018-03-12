@@ -1,6 +1,5 @@
 import tensorflow as tf
 import numpy as np
-import scipy.misc
 import scipy.stats as st
 
 # Name of image to upscale. Must be a 256x256 PNG.
@@ -8,7 +7,7 @@ image_name = "pupper.png"
 dim = 256
 
 def load_image(filename, dim):
-    with open(image_name, 'r') as f:
+    with open(image_name, 'rb') as f:
         raw_image = tf.image.decode_png(f.read())
 
     converted = tf.image.convert_image_dtype(
@@ -36,7 +35,7 @@ def save_image(filename, image):
 
     encoded_img = tf.image.encode_png(converted_img)
     
-    with open(filename, 'w') as f:
+    with open(filename, 'wb') as f:
         f.write(encoded_img.eval())
 
 def down_layer(layer):
@@ -85,7 +84,7 @@ def up_layer(layer):
     layer = tf.contrib.layers.conv2d(
         inputs=layer,
         num_outputs=3,
-        kernel_size=3,
+        kernel_size=1,
         padding='SAME',
         activation_fn=None)
     
@@ -145,7 +144,7 @@ out = tf.constant(np.random.uniform(0, 0.1, size=(1,dim,dim,32)), dtype=tf.float
 
 # Connect up all the downsampling layers.
 skips = []
-for i in xrange(down_layer_count):
+for i in range(down_layer_count):
     out = down_layer(out)
     # Keep a list of the skip layers, so they can be connected
     # to the upsampling layers.
@@ -155,7 +154,7 @@ print("Shape after downsample: " + str(out.get_shape()))
 
 # Connect up the upsampling layers, from smallest to largest.
 skips.reverse()
-for i in xrange(up_layer_count):
+for i in range(up_layer_count):
     if i == 0:
         # As specified in the paper, the first upsampling layers is connected to
         # the last downsampling layer through a skip layer.
@@ -169,7 +168,19 @@ for i in xrange(up_layer_count):
         
 print("Shape after upsample: " + str(out.get_shape()))
 
-E = tf.reduce_mean(tf.squared_difference(gblur(out), image))
+# Restore original image dimensions and channels
+out = tf.contrib.layers.conv2d(
+    inputs=out,
+    num_outputs=3,
+    kernel_size=1,
+    stride=1,
+    padding='SAME',
+    activation_fn=tf.nn.sigmoid)
+print("Output shape: " + str(out.get_shape()))
+
+# Use built-in rms implementation
+E = tf.losses.mean_squared_error(image, gblur(out))
+#E = tf.reduce_mean(tf.squared_difference(gblur(out), image))
 
 optimizer = tf.train.AdamOptimizer(learning_rate=0.01)
 update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -181,7 +192,7 @@ sess.run(tf.global_variables_initializer())
 
 save_image("output/corrupt.png", tf.reshape(image, (dim,dim,3)))
 
-for i in xrange(5001):
+for i in range(5001):
     new_rand = np.random.uniform(0, 1.0/30.0, size=(1,dim,dim,32))
     _, lossval = sess.run(
         [train_op, E],
@@ -191,7 +202,3 @@ for i in xrange(5001):
         image_out = sess.run(out, feed_dict={rand: new_rand}).reshape(dim,dim,3)
         save_image("output/%d_%s" % (i, image_name), image_out)
     print(i, lossval)
-
-
-
-
