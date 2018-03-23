@@ -178,9 +178,7 @@ out = tf.contrib.layers.conv2d(
     activation_fn=tf.nn.sigmoid)
 print("Output shape: " + str(out.get_shape()))
 
-# Use of built-in mse implementation
 E = tf.losses.mean_squared_error(image, gblur(out))
-#E = tf.reduce_mean(tf.squared_difference(gblur(out), image))
 
 optimizer = tf.train.AdamOptimizer(learning_rate=0.01)
 update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
